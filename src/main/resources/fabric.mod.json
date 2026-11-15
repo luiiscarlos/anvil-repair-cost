@@ -1,0 +1,16 @@
+{
+	"schemaVersion": 1,
+	"id": "anvilrepaircost",
+	"version": "${version}",
+	"name": "Anvil Repair Cost",
+	"description": "Reduce la penalización por trabajos previos del yunque.",
+	"authors": ["Luis"],
+	"license": "MIT",
+	"environment": "*",
+	"mixins": ["anvilrepaircost.mixins.json"],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.2",
+		"java": ">=25"
+	}
+}
