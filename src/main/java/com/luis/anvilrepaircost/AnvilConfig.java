@@ -15,8 +15,16 @@ public final class AnvilConfig {
 
 	private AnvilConfig() {}
 
+	private static volatile Path fileOverride;
+
+	/** Solo para tests: usa otro archivo en lugar de config/anvilrepaircost.json. */
+	public static void useFile(Path file) {
+		fileOverride = file;
+	}
+
 	private static Path file() {
-		return FabricLoader.getInstance().getConfigDir().resolve("anvilrepaircost.json");
+		Path override = fileOverride;
+		return override != null ? override : FabricLoader.getInstance().getConfigDir().resolve("anvilrepaircost.json");
 	}
 
 	public static int percent() {
