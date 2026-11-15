@@ -1,5 +1,7 @@
 # Plan: mod "Anvil Repair Cost" (Minecraft Java 26.2, Fabric)
 
+**Estado:** fases 1 y 2 implementadas y compiladas (`build/libs/anvil-repair-cost-1.0.0.jar`). Rama: `anvil-repair-cost-26.2-fabric`.
+
 Objetivo: reducir al 50 % la penalización por trabajos previos (Prior Work Penalty) del yunque. Nada más cambia: costes de encantamientos, reparación, renombrado, incompatibilidades y el límite de 39 niveles en Supervivencia.
 
 Entregable: `build/libs/anvil-repair-cost-<version>.jar` para copiar a `mods/`.
@@ -20,9 +22,9 @@ Versiones (tomadas de la rama `26.2` de `fabric-example-mod`; confirmar al crear
 - Loom `1.19-SNAPSHOT`, plugin `net.fabricmc.fabric-loom`
 - Gradle `9.8.2`
 
-## 2. Cómo funciona el Prior Work Penalty (a verificar en el código fuente)
+## 2. Cómo funciona el Prior Work Penalty
 
-Conocimiento previo (1.21.x), **no verificado aún en 26.2**:
+Verificado en el código de 26.2 (`AnvilMenu`, vía `genSources`):
 
 - Cada objeto guarda `DataComponents.REPAIR_COST`.
 - Al combinar en `AnvilMenu.createResult`, el coste total suma el `REPAIR_COST` de los dos objetos, más los costes de encantamientos, reparación y renombrado.
@@ -68,7 +70,7 @@ Base: copiar `build.gradle`, `gradle.properties`, `settings.gradle` y el wrapper
 
 1. **Crear el proyecto** desde la plantilla de la rama `26.2` y comprobar que `./gradlew build` compila sin cambios.
 2. **Leer el código real.** Ejecutar `./gradlew genSources` y abrir `net.minecraft.world.inventory.AnvilMenu`. Anotar: nombre exacto de la clase y de `createResult`, dónde se suma `REPAIR_COST`, la firma de `calculateIncreasedRepairCost` y dónde se aplica el límite de 39. **No se escribe ningún mixin antes de este paso.**
-3. **Escribir `AnvilMenuMixin`** con `@WrapOperation` (MixinExtras) sobre las lecturas de `REPAIR_COST` dentro de `createResult`, aplicando `(p + 1) / 2`. Con `@Mixin(AnvilMenu.class)` y `defaultRequire: 1` en el JSON: si el objetivo no existe, el juego falla al arrancar en vez de ignorarlo en silencio.
+3. **Escribir `AnvilMenuMixin`** con `@ModifyVariable` en el 2.º `STORE` de `tax` dentro de `createResult` (la línea `tax += REPAIR_COST(input) + REPAIR_COST(addition)`), aplicando `(tax * porcentaje + 99) / 100`. Se eligió en lugar de `@WrapOperation` porque `getOrDefault(REPAIR_COST)` se llama también al guardar el resultado. Con `@Mixin(AnvilMenu.class)` y `defaultRequire: 1` en el JSON: si el objetivo no existe, el juego falla al arrancar en vez de ignorarlo en silencio.
 4. **Probar en un mundo de pruebas** (`./gradlew runClient`), con `/give` de botas con `minecraft:repair_cost=31`:
    - Botas con penalización 31 + libro: coste menor que 35.
    - Renombrar botas con penalización 31: ~17 en lugar de 32.
@@ -113,6 +115,13 @@ Se hace solo cuando la fase 1 funciona y está probada.
 - El cambio se aplica al instante, sin reiniciar el mundo.
 
 **A verificar con `genSources`**: la API de comandos y el sistema de permisos de 26.2 (cambiaron en versiones recientes), y los nombres exactos de las clases.
+
+## 5c. Verificado
+
+- `genSources` con JDK 25 (Loom exige Java 25; si `JAVA_HOME` apunta a otro JDK, la compilación falla).
+- El mixin se aplica: con `-Dmixin.debug.export=true` se comprobó en el bytecode que la llamada está justo después de `tax += ...` y es la única modificación.
+- El mod carga en un servidor de desarrollo (`runServer`) sin errores de mixin.
+- **No probado en el juego:** costes reales en un yunque y el comando `/anvilcost` (requiere cliente y aceptar el EULA). Seguir la lista de pruebas de los pasos 4 y 5b.
 
 ## 6. Riesgos
 
